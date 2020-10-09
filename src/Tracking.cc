@@ -125,7 +125,8 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,
                             const double &timestamp,
                             const std::vector<cv::KeyPoint> &keypoints,
                             const cv::Mat &local_desc,
-                            const cv::Mat &global_desc)
+                            const cv::Mat &global_desc,
+                            const cv::Mat &control)
 {
     mImGray = imRGB;
     cv::Mat imDepth = imD;
@@ -158,6 +159,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,
                         keypoints,
                         local_desc,
                         global_desc);
+    mVelocity = control.inv();
     Track();
 
     return mCurrentFrame.mTcw.clone();
@@ -204,13 +206,18 @@ void Tracking::Track()
 
                 if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
+                    std::cout << "TrackReferenceKeyFrame" << std::endl;
                     bOK = TrackReferenceKeyFrame();
                 }
                 else
                 {
+                    std::cout << "TrackWithMotionModel started" << std::endl;
                     bOK = TrackWithMotionModel();
-                    if(!bOK)
+                    std::cout << "TrackWithMotionModel ended" << std::endl;
+                    if(!bOK) {
+                        std::cout << "TrackReferenceKeyFrame" << std::endl;
                         bOK = TrackReferenceKeyFrame();
+                    }
                 }
             }
             else
@@ -492,7 +499,7 @@ bool Tracking::TrackReferenceKeyFrame()
         return false;
 
     mCurrentFrame.mvpMapPoints = vpMapPointMatches;
-    mCurrentFrame.SetPose(mLastFrame.mTcw);
+    mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
 
     Optimizer::PoseOptimization(&mCurrentFrame);
 

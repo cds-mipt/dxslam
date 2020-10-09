@@ -15,6 +15,7 @@ using namespace std;
 
 void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,
                 vector<string> &vstrImageFilenamesD, vector<double> &vTimestamps);
+void LoadControl(const string &strSequenceFolder, const vector<double> &vTimestamps, vector<cv::Mat> &vControls);
 
 void getdescriptor(string filename,cv::Mat & descriptor,int nkeypoints);
 void getGlobaldescriptor(string filename,cv::Mat & descriptor);
@@ -32,10 +33,12 @@ int main(int argc, char **argv)
     vector<string> vstrImageFilenamesRGB;
     vector<string> vstrImageFilenamesD;
     vector<double> vTimestamps;
+    vector<cv::Mat> vControls;
     string strSequenceFolder = string(argv[3]);
     string strAssociationFilename = string(argv[4]);
     string featureFolder = string(argv[5]);
     LoadImages(strAssociationFilename, vstrImageFilenamesRGB, vstrImageFilenamesD, vTimestamps);
+    LoadControl(strSequenceFolder, vTimestamps, vControls);
 
     // Check consistency in the number of images and depthmaps
     int nImages = vstrImageFilenamesRGB.size();
@@ -67,9 +70,12 @@ int main(int argc, char **argv)
     cv::Mat imRGB, imD;
     for (int ni = 0; ni < vstrImageFilenamesRGB.size(); ni++) {
         // Read image and depthmap from file
+        string image_name = vstrImageFilenamesRGB[ni];
+        image_name = image_name.substr(image_name.rfind('/') + 1, image_name.rfind('.') - image_name.rfind('/') - 1);
         imRGB = cv::imread(strSequenceFolder + "/" + vstrImageFilenamesRGB[ni], CV_LOAD_IMAGE_UNCHANGED);
         imD = cv::imread(strSequenceFolder+ "/" + vstrImageFilenamesD[ni], CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
+        const cv::Mat control = vControls[ni];
 
         if (imRGB.empty()) {
             cerr << endl << "Failed to load image at: "
@@ -89,13 +95,12 @@ int main(int argc, char **argv)
         vector<cv::KeyPoint> keypoints;
 
         // Get keyPoint,local descriptor and global descriptor
-        getKeyPoint(featureFolder + "/point-txt/" + to_string(vTimestamps[ni]) + ".txt" , keypoints);
+        getKeyPoint(featureFolder + "/point-txt/" + image_name + ".txt" , keypoints);
         local_desc.create(keypoints.size(), 256, CV_32F);
-        getdescriptor(featureFolder + "/des/" + to_string(vTimestamps[ni]) + ".npy" , local_desc , keypoints.size());
+        getdescriptor(featureFolder + "/des/" + image_name + ".npy" , local_desc , keypoints.size());
         global_desc.create(4096, 1, CV_32F);
-        getGlobaldescriptor(featureFolder + "/glb/" + to_string(vTimestamps[ni]) + ".npy" , global_desc);
-
-        SLAM.TrackRGBD(imRGB, imD, tframe, keypoints , local_desc , global_desc);
+        getGlobaldescriptor(featureFolder + "/glb/" + image_name + ".npy" , global_desc);
+        SLAM.TrackRGBD(imRGB, imD, tframe, keypoints , local_desc , global_desc, control);
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 #else
@@ -157,6 +162,32 @@ void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageF
             ss >> sD;
             vstrImageFilenamesD.push_back(sD);
 
+        }
+    }
+}
+
+void LoadControl(const string &strSequenceFolder, const vector<double> &vTimestamps, vector<cv::Mat> &vControls)
+{
+    ifstream fControls;
+    fControls.open(strSequenceFolder + "/control.txt");
+    std::cout << strSequenceFolder + "/control.txt" << std::endl;
+    while(!fControls.eof())
+    {
+        string s;
+        getline(fControls, s);
+        if(!s.empty())
+        {
+            stringstream ss;
+            ss << s;
+            double t;
+            cv::Mat control = cv::Mat::eye(4, 4, CV_32F);
+            ss >> t;
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    ss >> control.at<float>(i, j);
+                }
+            }
+            vControls.push_back(control);
         }
     }
 }

@@ -4,6 +4,7 @@ import os
 import cv2
 from tensorflow.python.saved_model import tag_constants
 import sys
+from time import perf_counter
 tf.contrib.resampler
 
 class HFNet:
@@ -31,15 +32,12 @@ class HFNet:
         return self.session.run(self.outputs, feed_dict=inputs)
 
 if __name__ == "__main__":
-    if(len(sys.argv) != 3):
-        print("please input the correct args")
-        print("args1: image folder;")
-        print("args1: featuer folder;")
-        exit(0)
 
     #folders
     imageFolder = sys.argv[1]
     featuerFolder = sys.argv[2]
+    num_keypoints = int(sys.argv[3])
+    nms_radius = int(sys.argv[4])
 
     #define the net
     model_path = "./model/hfnet"
@@ -55,24 +53,32 @@ if __name__ == "__main__":
     globalDesFolder = os.path.join(featuerFolder, 'glb')
     keypointFolder = os.path.join(featuerFolder, 'point-txt')
     if not os.path.exists(featuerFolder):
-        os.mkdir(featuerFolder)
+        os.makedirs(featuerFolder)
     if not os.path.exists(localDesFolder):
-        os.mkdir(localDesFolder)
+        os.makedirs(localDesFolder)
     if not os.path.exists(globalDesFolder):
-        os.mkdir(globalDesFolder)
+        os.makedirs(globalDesFolder)
     if not os.path.exists(keypointFolder):
-        os.mkdir(keypointFolder)
+        os.makedirs(keypointFolder)
 
     #inference
+    ts = []
     for imageName in imageNames:
         image = cv2.imread(os.path.join(imageFolder , imageName))
-        query = hfnet.inference(image)
+        # image = cv2.resize(image, (600, 300))
+        H, W = image.shape[:2]
+        t1 = perf_counter()
+        query = hfnet.inference(image, num_keypoints=10000, nms_radius=nms_radius)
+        t2 = perf_counter()
+        ts.append(t2 - t1)
         print(imageName)
-        localDes = np.asarray(query['local_descriptors'])
+        localDes = np.asarray(query['local_descriptors'])[:num_keypoints]
         np.save(os.path.join(localDesFolder , imageName.split(".png")[0]), localDes)
         globalDes = np.asarray(query['global_descriptor'])
         np.save(os.path.join(globalDesFolder, imageName.split(".png")[0]), globalDes)
-        localIndex = np.asarray(query['keypoints'])
+        localIndex = np.asarray(query['keypoints'])[:num_keypoints]
         np.savetxt(os.path.join(keypointFolder , imageName.split(".png")[0] + ".txt"), localIndex)
+    print('IMAGE SHAPE: {} x {}'.format(H, W))
+    print('AVG INFERENCE TIME: MEAN {} STD {}'.format(np.mean(ts[1:]), np.std(ts[1:])))
 
     print("hello")

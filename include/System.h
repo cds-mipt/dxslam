@@ -54,7 +54,8 @@ public:
                 const double &timestamp,
                 const std::vector<cv::KeyPoint> &keypoints,
                 const cv::Mat &local_desc,
-                const cv::Mat &global_desc);
+                const cv::Mat &global_desc,
+                const cv::Mat &control);
 
 
     // This stops local mapping thread (map building) and performs only camera tracking.

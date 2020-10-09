@@ -41,7 +41,8 @@ public:
                         const double &timestamp,
                         const std::vector<cv::KeyPoint> &keypoints,
                         const cv::Mat &local_desc,
-                        const cv::Mat &global_desc);
+                        const cv::Mat &global_desc,
+                        const cv::Mat &control);
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
     void SetLoopClosing(LoopClosing* pLoopClosing);

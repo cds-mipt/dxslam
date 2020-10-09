@@ -89,7 +89,8 @@ cv::Mat System::TrackRGBD(const cv::Mat &im,
                         const double &timestamp,
                         const std::vector<cv::KeyPoint> &keypoints,
                         const cv::Mat &local_desc,
-                        const cv::Mat &global_desc)
+                        const cv::Mat &global_desc,
+                        const cv::Mat &control)
 {
     if(mSensor!=RGBD)
     {
@@ -131,7 +132,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im,
     }
     }
 
-    cv::Mat Tcw = mpTracker->GrabImageRGBD(im, depthmap, timestamp, keypoints, local_desc, global_desc);
+    cv::Mat Tcw = mpTracker->GrabImageRGBD(im, depthmap, timestamp, keypoints, local_desc, global_desc, control);
 
     std::unique_lock<std::mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;
@@ -189,7 +190,7 @@ void System::Shutdown()
     }
 
     if(mpViewer)
-        pangolin::BindToContext("ORB-SLAM2: Map Viewer");
+        pangolin::BindToContext("CDXSLAM: Map Viewer");
 }
 
 void System::SaveTrajectoryTUM(const std::string &filename)
