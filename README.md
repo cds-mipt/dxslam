@@ -1,6 +1,6 @@
-# DXSLAM
+# CDXSLAM
 
-DXSLAM is a visual SLAM system based on deep CNN feature extraction. Please
+CDXSLAM is a visual SLAM system with integrated control motion model based on deep CNN feature extraction. Please
 
 * clone this repo if you want to run an offline evaluation with e.g. the TUM dataset, or
 * clone [dxslam_ros](https://github.com/cedrusx/dxslam_ros) and [deep_features](https://github.com/cedrusx/deep_features) if you want a ROS version to work with a live camera or ROS bags e.g. from the OpenLORIS-Scene datasets, or
