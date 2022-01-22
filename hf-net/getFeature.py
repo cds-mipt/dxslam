@@ -119,7 +119,7 @@ if __name__ == "__main__":
     faiss_index = faiss.IndexFlatL2(num_keypoints)
     faiss_index.add(dbFeat)
 
-    n_values = [3]
+    n_values = [100]
 
     distances, predictions = faiss_index.search(qFeat, max(n_values))
 
